@@ -1,3 +1,6 @@
+#!/usr/bin/python
+# -*- coding: UTF-8 -*- 
+
 from ftplib import FTP
 
 servers = file("21_ports_FTP.txt").readlines()
