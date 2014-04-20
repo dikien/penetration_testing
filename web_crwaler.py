@@ -413,7 +413,10 @@ def get_all_links(url, url_matching_pattern, links_to_visit, links_to_visit_enc,
         print '\nwebcrwal is done: ', end_time - start_time
         
         sys.exit(0) 
-        
+    
+    except Exception as e:
+        return {}, links_to_visit, links_to_visit_enc, page_code_404, page_code_500
+    
     else:
         return {}, links_to_visit, links_to_visit_enc, page_code_404, page_code_500
 
