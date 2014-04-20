@@ -164,21 +164,32 @@ def domain_name(url):
 # a.jsp -> http://test.com/a.jsp
 def href2url(originating_page, href):
     
+    # if href starts with http
     if href.find("http") != -1:
         href = href.strip()
         return href
 
     else:
-        href = href.strip() 
+        
+        href = href.strip()
+        
         try:
             pieces = urlparse(urljoin(originating_page, href))
-        except:
+            
+        except Exception as e: 
+            print e 
             return ""
         url_scheme = pieces[0]
         url_location = pieces[1]
         url_path = pieces[2]
         url_parameter = pieces[3]
-        return  urlunsplit((url_scheme, url_location, url_path, url_parameter, ""))
+        url_query = pieces[4]
+        
+        # don't follw http://www.google.com/q=test
+        return  urlunsplit((url_scheme, url_location, url_path, "", ""))
+    
+        # follw http://www.google.com/q=test
+#         return  urlunsplit((url_scheme, url_location, url_path, url_query, url_parameter))
 
 
 def extract_all_href_links(page_contents, url_matching_pattern):
@@ -187,7 +198,8 @@ def extract_all_href_links(page_contents, url_matching_pattern):
     universal_links = set([])
     for link in links_on_page:
         u = href2url(url_matching_pattern, link)
-        if (u.startswith('http')) and u.find(base_pattern) != -1:
+        # urlparse(u)[1].find(base_pattern) != -1 to get rid of http://www.facebook.com/sharer/sharer.php?s=100&p[url]=http%3A%2F%2Fwww.test.com%2Fbbs%2Fboard.php
+        if (u.startswith('http')) and urlparse(u)[1].find(base_pattern) != -1:
             universal_links.add(u)
     return universal_links
 
@@ -380,8 +392,29 @@ def get_all_links(url, url_matching_pattern, links_to_visit, links_to_visit_enc,
         
         else:
             return {}, links_to_visit, links_to_visit_enc, page_code_404, page_code_500
+
+    except (KeyboardInterrupt, SystemExit):
         
-    except:
+        urls, url_number, res_code_200, res_code_404, res_code_500 = result_sumarize(table_name)
+
+        cur.close()
+            
+        end_time = timeit.default_timer() 
+            
+        print "*" * 50 
+        for url in urls: 
+            print url 
+        print "*" * 50 
+            
+        print "the number of all url is %s" % (url_number) 
+        print "the number of url with code 200 is %s" % (res_code_200) 
+        print "the number of url with code 404 is %s" % (res_code_404) 
+        print "the number of url with code 500 is %s" % (res_code_500) 
+        print '\nwebcrwal is done: ', end_time - start_time
+        
+        sys.exit(0) 
+        
+    else:
         return {}, links_to_visit, links_to_visit_enc, page_code_404, page_code_500
 
 
@@ -433,6 +466,7 @@ def main():
     cononical_url = args.pattern
     table_name = args.table
 
+    global start_time
     start_time = timeit.default_timer()    
 #     url_to_start ="http://192.168.10.9:8080/active/"
     
@@ -466,6 +500,9 @@ def main():
     while True:
         
         links_not_to_visit, links_to_visit, links_to_visit_enc, page_code_404, page_code_500 = not_to_visit_urls(links_not_to_visit, links_to_visit, links_to_visit_enc, page_code_404, page_code_500)
+        
+#         except (KeyboardInterrupt, SystemExit):
+#     sys.exit()
   
         if done_check(links_not_to_visit, links_to_visit):
 
