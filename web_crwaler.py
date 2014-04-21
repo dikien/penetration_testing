@@ -543,8 +543,6 @@ def main():
         
         links_not_to_visit, links_to_visit, links_to_visit_enc, page_code_404, page_code_500, links_to_visit_params = not_to_visit_urls(links_not_to_visit, links_to_visit, links_to_visit_enc, page_code_404, page_code_500, links_to_visit_params)
         
-#         except (KeyboardInterrupt, SystemExit):
-#     sys.exit()
   
         if done_check(links_not_to_visit, links_to_visit):
 
