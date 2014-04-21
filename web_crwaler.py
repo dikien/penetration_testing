@@ -6,7 +6,8 @@ from bs4 import BeautifulSoup
 import re 
 from urlparse import urlparse 
 from urlparse import urljoin 
-from urlparse import urlunsplit 
+from urlparse import urlunsplit
+from urlparse import parse_qs
 import os, sys 
 import timeit 
 import hashlib 
@@ -308,6 +309,11 @@ def add_links_to_frontier_3(page_contents_enc, links_to_visit_enc):
     return links_to_visit_enc
 
 
+def add_links_to_frontier_4(page_links, links_to_visit_params):
+    links_to_visit_params.add(page_links)
+    return links_to_visit_params
+
+
 def add_404_pages(page_links, page_code_404):
     page_code_404.add(page_links)
     return page_code_404
@@ -341,7 +347,7 @@ def array_to_string(arrays):
     return ""
 
 
-def get_all_links(url, url_matching_pattern, links_to_visit, links_to_visit_enc, page_code_404, page_code_500):
+def get_all_links(url, url_matching_pattern, links_to_visit, links_to_visit_enc, page_code_404, page_code_500, links_to_visit_params):
      
     user_agents = ["Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1667.0 Safari/537.36", \
                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1664.3 Safari/537.36", \
@@ -354,9 +360,23 @@ def get_all_links(url, url_matching_pattern, links_to_visit, links_to_visit_enc,
                    ]
 
     try:
+        
+        payloads = parse_qs(urlparse(url).query)
+        
+        # from {u'action': [u'M01']} to {u'action': u'M01'} 
+        for name in payloads.keys(): 
+            payloads[name] = payloads[name][0]
+        
+        # test.com/goods_list.php?Index=291 -> /goods_list.php['Index']
+        url_with_params = str(urlparse(url)[2]) + str(sorted(payloads.keys()))
+        
+        links_to_visit_params = add_links_to_frontier_4(url_with_params, links_to_visit_params)
+        
         links_to_visit = add_links_to_frontier_1(url, links_to_visit)
 
-        res = requests.get(url, timeout = 0.8, headers = {"User-Agent" : random.choice(user_agents)})
+        res = requests.get(url, timeout = 0.8, headers = {"User-Agent" : random.choice(user_agents)},
+                           verify = False)
+        
         res_contents = res.content 
         res_code = res.status_code 
     
@@ -377,21 +397,21 @@ def get_all_links(url, url_matching_pattern, links_to_visit, links_to_visit_enc,
                 
                 links_not_to_visit = add_links_to_frontier_2(follow_links, url)
 
-                return links_not_to_visit, links_to_visit, links_to_visit_enc, page_code_404, page_code_500
+                return links_not_to_visit, links_to_visit, links_to_visit_enc, page_code_404, page_code_500, links_to_visit_params
             
             else:
-                return {}, links_to_visit, links_to_visit_enc, page_code_404, page_code_500
+                return {}, links_to_visit, links_to_visit_enc, page_code_404, page_code_500, links_to_visit_params
 
         elif res_code == 404:
             page_code_404 = add_404_pages(url, page_code_404)
-            return {}, links_to_visit, links_to_visit_enc, page_code_404, page_code_500
+            return {}, links_to_visit, links_to_visit_enc, page_code_404, page_code_500, links_to_visit_params
         
         elif res_code == 500:
             page_code_500 = add_500_pages(url, page_code_500)
-            return {}, links_to_visit, links_to_visit_enc, page_code_404, page_code_500
+            return {}, links_to_visit, links_to_visit_enc, page_code_404, page_code_500, links_to_visit_params
         
         else:
-            return {}, links_to_visit, links_to_visit_enc, page_code_404, page_code_500
+            return {}, links_to_visit, links_to_visit_enc, page_code_404, page_code_500, links_to_visit_params
 
     except (KeyboardInterrupt, SystemExit):
         
@@ -415,13 +435,13 @@ def get_all_links(url, url_matching_pattern, links_to_visit, links_to_visit_enc,
         sys.exit(0) 
     
     except Exception as e:
-        return {}, links_to_visit, links_to_visit_enc, page_code_404, page_code_500
+        return {}, links_to_visit, links_to_visit_enc, page_code_404, page_code_500, links_to_visit_params
     
     else:
-        return {}, links_to_visit, links_to_visit_enc, page_code_404, page_code_500
+        return {}, links_to_visit, links_to_visit_enc, page_code_404, page_code_500, links_to_visit_params
 
 
-def not_to_visit_urls(links_not_to_visit, links_to_visit, links_to_visit_enc, page_code_404, page_code_500):
+def not_to_visit_urls(links_not_to_visit, links_to_visit, links_to_visit_enc, page_code_404, page_code_500, links_to_visit_params):
 
     if links_not_to_visit == {}:
         return links_not_to_visit, links_to_visit, links_to_visit_enc
@@ -431,18 +451,34 @@ def not_to_visit_urls(links_not_to_visit, links_to_visit, links_to_visit_enc, pa
     for link_key in links_not_to_visit.keys():
         for link in links_not_to_visit[link_key]:
             if link not in links_to_visit:
-                url = link
-                url_matching_pattern = make_baseurl(url)
-                results = get_all_links(url, url_matching_pattern, links_to_visit, links_to_visit_enc, page_code_404, page_code_500) 
-                  
-                links_not_to_visit_new = dict(results[0], **links_not_to_visit_new)
-
-                links_to_visit = results[1]
-                links_to_visit_enc = results[2]
-                page_code_404 = results[3]
-                page_code_500 = results[4]
                 
-    return links_not_to_visit_new, links_to_visit, links_to_visit_enc, page_code_404, page_code_500
+                url = link
+                payloads = parse_qs(urlparse(url).query)
+                
+                # from {u'action': [u'M01']} to {u'action': u'M01'} 
+                for name in payloads.keys(): 
+                    payloads[name] = payloads[name][0]
+        
+                # test.com/goods_list.php?Index=291 -> /goods_list.php['Index']
+                url_with_params = str(urlparse(url)[2]) + str(sorted(payloads.keys()))                
+                
+                if url_with_params not in links_to_visit_params:
+                    # ex) index.do?m=A01 and index.do?m=A01 are totally different
+                    # change it to "if url_with_params not in {}:"
+                    
+                    url = link
+                    url_matching_pattern = make_baseurl(url)
+                    results = get_all_links(url, url_matching_pattern, links_to_visit, links_to_visit_enc, page_code_404, page_code_500, links_to_visit_params) 
+                      
+                    links_not_to_visit_new = dict(results[0], **links_not_to_visit_new)
+    
+                    links_to_visit = results[1]
+                    links_to_visit_enc = results[2]
+                    page_code_404 = results[3]
+                    page_code_500 = results[4]
+                    links_to_visit_params = results[5]
+                
+    return links_not_to_visit_new, links_to_visit, links_to_visit_enc, page_code_404, page_code_500, links_to_visit_params
 
 
 def main():
@@ -478,6 +514,8 @@ def main():
     links_not_to_visit = {}
     links_to_visit = set([])
     links_to_visit_enc = set([])
+    links_to_visit_params = set([])
+
 
     page_code_404 = set([])
     page_code_500 = set([])
@@ -496,13 +534,14 @@ def main():
                             links_to_visit,\
                             links_to_visit_enc,\
                             page_code_404,\
-                            page_code_500\
+                            page_code_500,\
+                            links_to_visit_params
                             )
-    links_not_to_visit, links_to_visit, links_to_visit_enc, page_code_404, page_code_500 = results
+    links_not_to_visit, links_to_visit, links_to_visit_enc, page_code_404, page_code_500, links_to_visit_params = results
 
     while True:
         
-        links_not_to_visit, links_to_visit, links_to_visit_enc, page_code_404, page_code_500 = not_to_visit_urls(links_not_to_visit, links_to_visit, links_to_visit_enc, page_code_404, page_code_500)
+        links_not_to_visit, links_to_visit, links_to_visit_enc, page_code_404, page_code_500, links_to_visit_params = not_to_visit_urls(links_not_to_visit, links_to_visit, links_to_visit_enc, page_code_404, page_code_500, links_to_visit_params)
         
 #         except (KeyboardInterrupt, SystemExit):
 #     sys.exit()
