@@ -60,8 +60,8 @@ def insert_data(url, res_code, res_content):
         cur.execute("select url from " + table_name + " where url == (?)", [url]) 
 
         if cur.fetchone() is None: 
-            res_content = base64.b64encode(res_content) 
-            cur.execute("insert into " + table_name + " (url, res_code) values(?, ?)", [url, res_code]) 
+            cur.execute("insert into " + table_name + " (url, res_code) values(?, ?)", [url, res_code])
+#             res_content = base64.b64encode(res_content) 
 #             cur.execute("insert into " + table_name + " (url, res_code, res_content) values(?, ?, ?)", [url, res_code, res_content]) 
             conn.commit()
             print "insert the %s" %(url) 
@@ -153,8 +153,8 @@ def scoop_hrefs_regexp(html_page_contents):
 # union tags from scoop_forms_beautiful_soup and scoop_hrefs_beautiful_soup
 def scoop_hrefs(html_page_contents, url):
     return set.union(set(scoop_hrefs_beautiful_soup(html_page_contents)), \
-                     set(scoop_hrefs_regexp(html_page_contents)))
-#                      scoop_forms_beautiful_soup(html_page_contents, url))
+                     set(scoop_hrefs_regexp(html_page_contents)),\
+                     scoop_forms_beautiful_soup(html_page_contents, url))
 
    
 # extract the domain name
@@ -373,9 +373,16 @@ def get_all_links(url, url_matching_pattern, links_to_visit, links_to_visit_enc,
         links_to_visit_params = add_links_to_frontier_4(url_with_params, links_to_visit_params)
         
         links_to_visit = add_links_to_frontier_1(url, links_to_visit)
-
-        res = requests.get(url, timeout = 0.8, headers = {"User-Agent" : random.choice(user_agents)},
-                           verify = False)
+        
+        # cookie check
+        if cookie is None:
+            res = requests.get(url, timeout = 0.8, headers = {"User-Agent" : random.choice(user_agents)},
+                               verify = False)
+        
+        else:
+            res = requests.get(url, timeout = 0.8, headers = {"User-Agent" : random.choice(user_agents),\
+                                                              "Cookie" : cookie},
+                               verify = False)
         
         res_contents = res.content 
         res_code = res.status_code 
@@ -490,6 +497,8 @@ def main():
     
     parser.add_argument("-u", "--url", required=True, help="target domain")
     parser.add_argument("-p", "--pattern", required=True, help="string to find target domain")
+    parser.add_argument("-c", "--cookie", required=False, help="cookie")
+    parser.add_argument("-m", "--modify", required=False, help="update the result from previsous table, ex)-u yes")
     parser.add_argument("-t", "--table", required=True, help="table name")
     parser.add_argument("-v", "--version", action='version', version = 'JongWon Kim (dikien2012@gmail.com)\n%(prog)s - v.1.0 (04/19/2014)')
 
@@ -504,6 +513,17 @@ def main():
     url_to_start = args.url
     cononical_url = args.pattern
     table_name = args.table
+    update_table = args.modify
+
+    global cookie
+    cookie = args.cookie
+
+    global conn
+    conn = sqlite3.connect("crawler.db")
+    
+    global cur
+    cur = conn.cursor()
+
 
     global start_time
     start_time = timeit.default_timer()    
@@ -512,7 +532,14 @@ def main():
     url_matching_pattern = url_to_start
 
     links_not_to_visit = {}
+    
     links_to_visit = set([])
+    
+    if update_table:
+        cur.execute("select url from " + table_name)
+        for row in cur:
+            links_to_visit.add(row[0])
+
     links_to_visit_enc = set([])
     links_to_visit_params = set([])
 
@@ -520,14 +547,9 @@ def main():
     page_code_404 = set([])
     page_code_500 = set([])
     
-    global conn
-    conn = sqlite3.connect("crawler.db")
-    
-    global cur
-    cur = conn.cursor()
-    
-    drop_table(table_name) 
-    create_table(table_name) 
+    if not update_table:
+        drop_table(table_name) 
+        create_table(table_name) 
     
     results = get_all_links(url_to_start,\
                             url_matching_pattern,\
@@ -537,6 +559,7 @@ def main():
                             page_code_500,\
                             links_to_visit_params
                             )
+
     links_not_to_visit, links_to_visit, links_to_visit_enc, page_code_404, page_code_500, links_to_visit_params = results
 
     while True:
