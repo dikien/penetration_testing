@@ -187,10 +187,10 @@ def href2url(originating_page, href):
         url_query = pieces[4]
         
         # don't follw http://www.google.com/q=test
-        return  urlunsplit((url_scheme, url_location, url_path, "", ""))
+#         return  urlunsplit((url_scheme, url_location, url_path, "", ""))
     
         # follw http://www.google.com/q=test
-#         return  urlunsplit((url_scheme, url_location, url_path, url_query, url_parameter))
+        return  urlunsplit((url_scheme, url_location, url_path, url_query, url_parameter))
 
 
 def extract_all_href_links(page_contents, url_matching_pattern):
@@ -376,12 +376,16 @@ def get_all_links(url, url_matching_pattern, links_to_visit, links_to_visit_enc,
         
         # cookie check
         if cookie is None:
-            res = requests.get(url, timeout = 0.8, headers = {"User-Agent" : random.choice(user_agents)},
+            res = requests.get(url,\
+                               timeout = 0.8,\
+                               headers = {"User-Agent" : random.choice(user_agents)},\
                                verify = False)
         
         else:
-            res = requests.get(url, timeout = 0.8, headers = {"User-Agent" : random.choice(user_agents),\
-                                                              "Cookie" : cookie},
+            res = requests.get(url,\
+                               timeout = 0.8,\
+                               headers = {"User-Agent" : random.choice(user_agents),\
+                                          "Cookie" : cookie},\
                                verify = False)
         
         res_contents = res.content 
@@ -516,14 +520,20 @@ def main():
     update_table = args.modify
 
     global cookie
-    cookie = args.cookie
+    cookie_filename = args.cookie
+    
+    try:
+        f = open(cookie_filename).read()
+        cookie = str(f).strip()
+        
+    except:
+        cookie = None
 
     global conn
     conn = sqlite3.connect("crawler.db")
     
     global cur
     cur = conn.cursor()
-
 
     global start_time
     start_time = timeit.default_timer()    
