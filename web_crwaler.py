@@ -109,7 +109,7 @@ def scoop_forms_beautiful_soup(html_page_contents, url):
     url_location = urlparse(url)[1] 
 
     # res_content = base64.b64decode(html_page_contents) 
-    # html_page_contents = unicode(res_content, 'euc-kr').encode('utf-8') 
+#     html_page_contents = unicode(html_page_contents, 'euc-kr').encode('utf-8') 
     b = BeautifulSoup(html_page_contents) 
 
     result = set([]) 
@@ -122,6 +122,7 @@ def scoop_forms_beautiful_soup(html_page_contents, url):
                 result.add(action) 
 
         except Exception as e:
+            
             pass 
 
     return result 
@@ -178,7 +179,7 @@ def href2url(originating_page, href):
             pieces = urlparse(urljoin(originating_page, href))
             
         except Exception as e: 
-            print e 
+#             print e
             return ""
         url_scheme = pieces[0]
         url_location = pieces[1]
@@ -432,10 +433,10 @@ def get_all_links(url, url_matching_pattern, links_to_visit, links_to_visit_enc,
             
         end_time = timeit.default_timer() 
             
-        print "*" * 50 
+        print "*" * 120
         for url in urls: 
             print url 
-        print "*" * 50 
+        print "*" * 120
             
         print "the number of all url is %s" % (url_number) 
         print "the number of url with code 200 is %s" % (res_code_200) 
@@ -531,6 +532,7 @@ def main():
 
     global conn
     conn = sqlite3.connect("crawler.db")
+    conn.text_factory = str
     
     global cur
     cur = conn.cursor()
@@ -585,10 +587,10 @@ def main():
             
             end_time = timeit.default_timer() 
             
-            print "*" * 50 
+            print "*" * 120
             for url in urls: 
                 print url 
-            print "*" * 50 
+            print "*" * 120 
             
             print "the number of all url is %s" % (url_number) 
             print "the number of url with code 200 is %s" % (res_code_200) 

