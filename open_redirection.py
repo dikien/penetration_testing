@@ -22,21 +22,23 @@ class open_redirection(ninja.web):
 
         intereting_strings = ["http", "jsp", "php", "asp"]
 
-        for intereting_string in intereting_strings:
+        for url in urls:
 
-            for url in urls:
-                if urlparse(url)[4].find(intereting_string) != -1:
+            if urlparse(url)[4].find("http") != -1 or\
+                urlparse(url)[4].find("http") != -1 or\
+                urlparse(url)[4].find("http") != -1 or\
+                urlparse(url)[4].find("http") != -1:
 
-                    print url
-
-
+                self.collection_saving_results.insert({"url" : url,
+                                                "open redirection" : True
+                                                })
 
 
 if __name__ == "__main__":
 
-    usage        = '''./open_redirection.py -t '''
+    usage        = '''./open_redirection.py -t testfire '''
 
-    parser = argparse.ArgumentParser(description = "open_redirection attack based on error message for pen testing", \
+    parser = argparse.ArgumentParser(description = "open_redirection attack based on error message for pen testing",
                                      usage = usage)
     parser.add_argument("-t", "--table", required=True, help="collection that saved urls")
     parser.add_argument("-p", "--payload", required=False, help="payload characters to attack")
@@ -49,19 +51,11 @@ if __name__ == "__main__":
 
     collection_saving_urls = args.table
 
-    attack_strings_filename = args.payload
-    attack_strings_filename = ""
-
-    origin_url = args.url
-    origin_url = ""
-
-    cookie_filename = args.cookie
     timeout = args.timeout
 
     start_time = timeit.default_timer()
 
     open_redirection = open_redirection(collection_saving_urls)
-
 
     processes = []
 
