@@ -91,7 +91,7 @@ def portscan(ident,ip, port_queue):
 
         # Begining port scanning
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(0.5)
+        s.settimeout(3)
         response = s.connect_ex((str(ip), int(port)))
         if not response:
             lock.acquire()
