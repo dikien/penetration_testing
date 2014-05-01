@@ -12,28 +12,87 @@ import os, sys
 import timeit 
 import hashlib 
 import random 
+import sqlite3 
 import base64
 import argparse
-from pymongo import MongoClient
 
-connection = MongoClient()
-db = connection.crwaler # database name
+
+# drop table
+def drop_table(table_name): 
+    try: 
+        query = "DROP table IF EXISTS %s" %(table_name) 
+        cur.execute(query) 
+        conn.commit() 
+        print "drop %s table" %(table_name) 
+    except Exception as e: 
+        print e 
+        print "can't drop %s table" %(table_name) 
+
+
+# create table   
+def create_table(table_name): 
+    try: 
+        query = "CREATE TABLE IF NOT EXISTS " + table_name + \
+                "(id INTEGER PRIMARY KEY NOT NULL,"\
+                "url text unique,"\
+                "res_code text,"\
+                "res_content text,"\
+                "verb text,"\
+                "admin text,"\
+                "integer_overflow text,"\
+                "buffer_overflow text,"\
+                "sqli text,"\
+                "xss text,"\
+                "lfi text,"\
+                "rfi text)"
+        cur.execute(query) 
+        conn.commit() 
+        print "created %s table" %(table_name) 
+    except Exception as e: 
+        print e 
+        print "can't create %s table" %(table_name) 
+
+
+# insert the url, response code, and response content
+# if you save response content, the size will grow up
+def insert_data(url, res_code, res_content): 
+    try:
+        cur.execute("select url from " + table_name + " where url == (?)", [url]) 
+
+        if cur.fetchone() is None: 
+            cur.execute("insert into " + table_name + " (url, res_code) values(?, ?)", [url, res_code])
+#             res_content = base64.b64encode(res_content) 
+#             cur.execute("insert into " + table_name + " (url, res_code, res_content) values(?, ?, ?)", [url, res_code, res_content]) 
+            conn.commit()
+            print "insert the %s" %(url) 
+        else: 
+            print "you already visited the %s" %(url) 
+
+    except Exception as e: 
+        print e 
+
 
 # after finish scanning, it will show the summary
-def result_sumarize():
-    
+def result_sumarize(table_name): 
     try:
-        collection.find()
-        url_number = str(collection.count())
+        cur.execute("select count(url) from " + table_name) 
+        url_number = cur.fetchone()[0] 
 
-        res_code_200 = collection.find({"res_code" : "200"}).count()
-        res_code_404 = collection.find({"res_code" : "404"}).count()
-        res_code_500 = collection.find({"res_code" : "500"}).count()
+        cur.execute("select count(url) from " + table_name + " where res_code == '200'") 
+        res_code_200 = cur.fetchone()[0] 
+
+        cur.execute("select count(url) from " + table_name + " where res_code == '404'") 
+        res_code_404 = cur.fetchone()[0] 
+
+        cur.execute("select count(url) from " + table_name + " where res_code == '500'") 
+        res_code_500 = cur.fetchone()[0] 
+
+        cur.execute("select url from " + table_name) 
 
         urls = [] 
 
-        for url in collection.find({}, {"url" : 1}):
-            urls.append(url["url"])
+        for row in cur: 
+            urls.append(row[0]) 
 
         return urls, url_number, res_code_200, res_code_404, res_code_500 
 
@@ -332,17 +391,15 @@ def get_all_links(url, url_matching_pattern, links_to_visit, links_to_visit_enc,
         
         res_contents = res.content 
         res_code = res.status_code 
-
-        collection.save({"url" : url,
-                         "res_code" : str(res_code)})
+    
+        insert_data(url, str(res_code), res_contents)
         
         if (res_code == 200):
 
             page_contents_enc = hashlib.sha1(res_contents).digest().encode("hex")
             
             if page_contents_enc not in links_to_visit_enc:
-                print url
-                
+
                 links_to_visit_enc = add_links_to_frontier_3(page_contents_enc, links_to_visit_enc)
                 url_base = make_baseurl(url_matching_pattern)
                 
@@ -370,7 +427,9 @@ def get_all_links(url, url_matching_pattern, links_to_visit, links_to_visit_enc,
 
     except (KeyboardInterrupt, SystemExit):
         
-        urls, url_number, res_code_200, res_code_404, res_code_500 = result_sumarize()
+        urls, url_number, res_code_200, res_code_404, res_code_500 = result_sumarize(table_name)
+
+        cur.close()
             
         end_time = timeit.default_timer() 
             
@@ -384,7 +443,7 @@ def get_all_links(url, url_matching_pattern, links_to_visit, links_to_visit_enc,
         print "the number of url with code 404 is %s" % (res_code_404) 
         print "the number of url with code 500 is %s" % (res_code_500) 
         print '\nwebcrwal is done: ', end_time - start_time
-        connection.close()
+        
         sys.exit(0) 
     
     except Exception as e:
@@ -451,14 +510,14 @@ def main():
     args = parser.parse_args()
 
     global cononical_url
+#     cononical_url = "192.168.10.9"
 
     global table_name 
+#     table_name = "wavsep"
 
     url_to_start = args.url
     cononical_url = args.pattern
-    
     table_name = args.table
-    
     update_table = args.modify
 
     global cookie
@@ -471,6 +530,13 @@ def main():
     except:
         cookie = None
 
+    global conn
+    conn = sqlite3.connect("crawler.db")
+    conn.text_factory = str
+    
+    global cur
+    cur = conn.cursor()
+
     global start_time
     start_time = timeit.default_timer()    
 #     url_to_start ="http://192.168.10.9:8080/active/"
@@ -480,13 +546,11 @@ def main():
     links_not_to_visit = {}
     
     links_to_visit = set([])
-
-    global collection 
-
+    
     if update_table:
-        collection = db.connection(table_name)
-        for url in collection.find({}, {"url" : 1}):
-            links_to_visit.add(url["url"])
+        cur.execute("select url from " + table_name)
+        for row in cur:
+            links_to_visit.add(row[0])
 
     links_to_visit_enc = set([])
     links_to_visit_params = set([])
@@ -495,19 +559,9 @@ def main():
     page_code_404 = set([])
     page_code_500 = set([])
     
-    
     if not update_table:
-        try:
-            db.drop_collection(table_name)
-            print "[+] drop %s collection" %(table_name)
-        except:
-            pass
-        
-        try:
-            collection = db.create_collection(table_name)
-            print "[+] connected %s collection" %(table_name)
-        except:
-            pass
+        drop_table(table_name) 
+        create_table(table_name) 
     
     results = get_all_links(url_to_start,\
                             url_matching_pattern,\
@@ -527,8 +581,10 @@ def main():
   
         if done_check(links_not_to_visit, links_to_visit):
 
-            urls, url_number, res_code_200, res_code_404, res_code_500 = result_sumarize() 
-                  
+            urls, url_number, res_code_200, res_code_404, res_code_500 = result_sumarize(table_name) 
+      
+            cur.close()
+            
             end_time = timeit.default_timer() 
             
             print "*" * 120
@@ -542,7 +598,6 @@ def main():
             print "the number of url with code 500 is %s" % (res_code_500) 
             print '\nwebcrwal is done: ', end_time - start_time
             
-            connection.close()
             sys.exit() 
 
 if __name__ == "__main__":

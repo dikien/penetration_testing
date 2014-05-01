@@ -116,6 +116,7 @@ class web:
     def search_urls(self):
 
         urls = []
+        # 응답코드가 200번이 아닌 url을 추출
         for url in self.collection_saving_urls.find({"res_code": {"$ne" : 200}}, {"url": 1}).sort("url", 1):
             urls.append(url["url"])
         return self.partition(urls, self.ncores)

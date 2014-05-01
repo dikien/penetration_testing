@@ -1,6 +1,8 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
 
+__author__ = 'dikien'
+
 import ninja
 import argparse
 import timeit
@@ -8,23 +10,20 @@ import multiprocessing as mp
 import sys
 
 # save_data의 경우는 함수마다 공격의 결과값을 판단하는 패턴이 다르므로 개별로 정의
-class xss(ninja.web):
+class fuzzing(ninja.web):
 
     def save_data(self, method, case, url, payloads, res):
 
         self.collection_saving_results = self.db["report"]
         print res.url
-        # print payloads
-        res_content = res.content
+        print res.elapsed.seconds
 
-        for attack_command in self.attack_commands:
+        if (res.elapsed.seconds > 2.0) and res.status_code != 404:
 
-            if res_content.find(attack_command) > 0:
-
-                # case2 and post
-                if payloads:
-                    self.collection_saving_results.insert({"url" : url,
-                                                "attack name" : "xss",
+            # case2 and post
+            if payloads:
+                self.collection_saving_results.insert({"url" : url,
+                                                "attack name" : "sql injection time",
                                                 "method" : method,
                                                 "case" : case,
                                                 "payload" : str(res.url) + str(payloads),
@@ -34,12 +33,13 @@ class xss(ninja.web):
                                                 "res_content" : str(res.content),
                                                 "res_time" : res.elapsed.total_seconds()
                                                 })
-                    print "[+] [%s][%s] %s?%s" %(case, method, url, payloads)
-                # case1 and get, case2 and get
+                print "[+] [%s][%s] %s?%s" %(case, method, url, payloads)
 
-                else:
-                    self.collection_saving_results.insert({"url" : url,
-                                                "attack name" : "xss",
+            # case1 and get, case2 and get
+            else:
+
+                self.collection_saving_results.insert({"url" : url,
+                                                "attack name" : "sql injection time",
                                                 "method" : method,
                                                 "case" : case,
                                                 "payload" : res.url,
@@ -49,20 +49,20 @@ class xss(ninja.web):
                                                 "res_content" : str(res.content),
                                                 "res_time" : res.elapsed.total_seconds()
                                                 })
-                    print "[+] [%s][%s] %s" %(case, method, res.url)
+                print "[+] [%s][%s] %s" %(case, method, res.url)
 
 
 if __name__ == "__main__":
 
-    usage        = '''./xss.py -t testfire -p payload/xss_query -u demo.testfire.net -c cookie'''
+    usage        = '''./fuzzing_forms.py -t testfire -p payload/fuzz_strings -u demo.testfire.net -c cookie -o 5'''
 
-    parser = argparse.ArgumentParser(description = "xss attack for pen testing", \
+    parser = argparse.ArgumentParser(description = "fuzzing attack for pen testing", \
                                      usage = usage)
     parser.add_argument("-t", "--table", required=True, help="collection that saved urls")
     parser.add_argument("-p", "--payload", required=True, help="payload characters to attack")
     parser.add_argument("-u", "--url", required=True, help="requests in origin_url")
     parser.add_argument("-c", "--cookie", required=False, help="filename that contains a cookie")
-    parser.add_argument("-o", "--timeout", required=False, help="default timeout is 1 sec")
+    parser.add_argument("-o", "--timeout", required=True, help="default timeout is 1 sec")
     parser.add_argument("-v", "--version", action='version', version = 'JongWon Kim (dikien2012@gmail.com)\n%(prog)s - v.1.1 (05/05/2014)')
 
     args = parser.parse_args()
@@ -76,20 +76,20 @@ if __name__ == "__main__":
 
     os_version = sys.platform
 
-    xss = xss(collection_saving_urls, cookie_filename, attack_strings_filename, timeout, origin_url)
+    fuzzing = fuzzing(collection_saving_urls, cookie_filename, attack_strings_filename, timeout, origin_url)
 
     # 공격의 예상시간을 출력
-    xss.predict_attack_time()
+    fuzzing.predict_attack_time()
 
     processes = []
 
     # 공격에 필요한 url을 테이블에서 가져옴
-    urls = xss.search_urls()
+    urls = fuzzing.search_urls()
 
     if os_version.find("win32") == -1:
 
         for url in urls:
-            process = mp.Process(target = xss.attack_case1, args=(url,))
+            process = mp.Process(target = fuzzing.attack_case1, args=(url,))
             processes.append(process)
             process.start()
 
@@ -98,7 +98,7 @@ if __name__ == "__main__":
 
     else:
         for url in urls:
-            process = mp.Process(target = xss.attack_case1(url))
+            process = mp.Process(target = fuzzing.attack_case1(url))
 
     processes = []
 
@@ -106,7 +106,7 @@ if __name__ == "__main__":
     if os_version.find("win32") == -1:
 
         for url in urls:
-            process = mp.Process(target = xss.attack_case2, args=(url,))
+            process = mp.Process(target = fuzzing.attack_case2, args=(url,))
             processes.append(process)
             process.start()
 
@@ -115,8 +115,7 @@ if __name__ == "__main__":
 
     else:
         for url in urls:
-            process = mp.Process(target = xss.attack_case2(url))
-
+            process = mp.Process(target = fuzzing.attack_case2(url))
 
     end_time = timeit.default_timer()
     print "*" * 120

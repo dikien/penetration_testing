@@ -5,6 +5,7 @@ import ninja
 import argparse
 import timeit
 import multiprocessing as mp
+import sys
 
 # save_data의 경우는 함수마다 공격의 결과값을 판단하는 패턴이 다르므로 개별로 정의
 class sqli(ninja.web):
@@ -51,7 +52,7 @@ class sqli(ninja.web):
 
 if __name__ == "__main__":
 
-    usage        = '''./sql_injection_time.py -t '''
+    usage        = '''./sql_injection_time.py -t testfire -p payload/sqli_time_query -u demo.testfire.net -c cookie -o 5'''
 
     parser = argparse.ArgumentParser(description = "sql injection attack based on time delay for pen testing", \
                                      usage = usage)
@@ -71,6 +72,8 @@ if __name__ == "__main__":
     timeout = args.timeout
     start_time = timeit.default_timer()
 
+    os_version = sys.platform
+
     sqli = sqli(collection_saving_urls, cookie_filename, attack_strings_filename, timeout, origin_url)
 
     # 공격의 예상시간을 출력
@@ -81,27 +84,36 @@ if __name__ == "__main__":
     # 공격에 필요한 url을 테이블에서 가져옴
     urls = sqli.search_urls()
 
-    for url in urls:
+    if os_version.find("win32") == -1:
 
-        # 윈도우 계열의 경우 아래의 명령어를 실행
-        # process = mp.Process(target = sqli.attack_case1(url))
+        for url in urls:
+            process = mp.Process(target = sqli.attack_case1, args=(url,))
+            processes.append(process)
+            process.start()
 
-        process = mp.Process(target = sqli.attack_case1, args=(url,))
-        processes.append(process)
-        process.start()
-    for item in processes:
-        item.join()
+        for item in processes:
+            item.join()
+
+    else:
+        for url in urls:
+            process = mp.Process(target = sqli.attack_case1(url))
 
     processes = []
 
 # case 2, 3
-    for url in urls:
-        process = mp.Process(target = sqli.attack_case2, args=(url,))
-        processes.append(process)
-        process.start()
+    if os_version.find("win32") == -1:
 
-    for item in processes:
-        item.join()
+        for url in urls:
+            process = mp.Process(target = sqli.attack_case2, args=(url,))
+            processes.append(process)
+            process.start()
+
+        for item in processes:
+            item.join()
+
+    else:
+        for url in urls:
+            process = mp.Process(target = sqli.attack_case2(url))
 
     end_time = timeit.default_timer()
     print "*" * 120
