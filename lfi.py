@@ -98,7 +98,7 @@ if __name__ == "__main__":
 
     processes = []
 
-# case 2, 3
+# case 2,3
     for url in urls:
         process = mp.Process(target = lfi.attack_case2, args=(url,))
         processes.append(process)
