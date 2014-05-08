@@ -26,3 +26,7 @@ o is http connection timeout.
 
 Future Work:
 wetkit engine, ajax, screen shot, passive scan
+
+Thank you:
+http://math.nist.gov/~RPozo/ngraph/webcrawler.html
+https://bitbucket.org/chbb/spse
