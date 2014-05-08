@@ -2,7 +2,7 @@
 """
 Script to open a sqlite3 database and dump all user tables to CSV files.
 Tested in Unicode-rich environment.
- 
+
 Usage:
     dumpsqlite3tocsv foo.db
     from https://gist.github.com/garthk/2564099
