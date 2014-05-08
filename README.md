@@ -1,8 +1,6 @@
 penetration testing
 ===================
 jongwon
-111
-Usage:
 
 dikien2012@gmail.com
 
