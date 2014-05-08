@@ -3,6 +3,7 @@ penetration testing
 
 dikien2012@gmail.com
 
+
 First Stage:
 
 if you crwal the site for the first time(drop the collection)
@@ -13,6 +14,8 @@ if you crwal the site for the first time(drop the collection)
 if you want to add urls(modify the collection)
 
 ./web_crwaler.py --url="http://demo.testfire.net/" -p testfire.net -t testfire -m 1
+
+
 
 Second Stage:
 
@@ -36,9 +39,11 @@ o is http connection timeout.
 
 ./open_redirection.py -t testfire
 
+
 Future Work:
 
 wetkit engine, ajax, screen shot, passive scan, geolocation
+
 
 Thank you:
 
