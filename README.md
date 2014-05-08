@@ -1,14 +1,17 @@
 penetration testing
 ===================
-jongwon
 
 dikien2012@gmail.com
 
 First Stage:
+
 if you crwal the site for the first time(drop the collection)
+
 ./web_crwaler.py --url="http://demo.testfire.net/" -p testfire.net -t testfire
 
+
 if you want to add urls(modify the collection)
+
 ./web_crwaler.py --url="http://demo.testfire.net/" -p testfire.net -t testfire -m 1
 
 Second Stage:
