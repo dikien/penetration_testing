@@ -103,7 +103,7 @@ if __name__ == "__main__":
 
     processes = []
 
-# case 2, 3
+# case 2,3
     if os_version.find("win32") == -1:
 
         for url in urls:

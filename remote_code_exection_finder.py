@@ -171,7 +171,6 @@ if __name__ == "__main__":
     
     
 # print forms[0]
-# print
 # print forms[0].controls[0]
 # 
 # print len(forms[0].controls)

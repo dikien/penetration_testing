@@ -302,7 +302,7 @@ class web:
 
                     elif method == "POST":
 
-                        # action : https://www.xxx.co.kr/13.sh?action=loginCheck
+                        # action : https://www.xxx.co.kr/1.sh?action=loginCheck
                         if len(urlparse(action)[4]) != 0:
 
                             # merge payload to action=loginCheck

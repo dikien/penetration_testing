@@ -87,7 +87,7 @@ href_regexp = re.compile('<a\s+href\s*?="\s*?(.*?)"', \
         re.IGNORECASE | re.MULTILINE)
 
 
-# extract href tag
+# extract href tags
 def scoop_hrefs_regexp(html_page_contents):
     return href_regexp.findall(html_page_contents)
 

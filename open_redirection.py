@@ -62,7 +62,7 @@ if __name__ == "__main__":
 
     processes = []
 
-    # 공격에 필요한 url을 테이블에서 가져옴
+    # 공격에 필요한 url을 콜렉션에서 가져옴
     urls = open_redirection.search_urls()
 
     if os_version.find("win32") == -1:
